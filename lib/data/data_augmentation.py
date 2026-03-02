@@ -6,7 +6,7 @@ import torch
 from torchvision import datasets, transforms
 from torch.utils.data import DataLoader, WeightedRandomSampler, Dataset
 
-from dataset import BeeDataset
+from .dataset import BeeDataset
 from train_val_split import train_val_split
 from preprocessing import TorchPreprocessor
 
