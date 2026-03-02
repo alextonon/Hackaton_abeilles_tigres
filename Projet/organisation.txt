@@ -1,0 +1,10 @@
+Branches de travail
+- Preprocessing avec normalisation mean/std, méthode pour reconstruire le dataset, reconvertir les données, créer le code de submission, organiser la base de données des résultats pour s'en sortir
+- Data augmentation (avec inverse pour vérifier)
+- Model from scratch (quelles architectures ?, quelle initialisation des poids, qu'est ce qui se fait sur des végétauxou des animaux)
+- Fine tuning : quels modeles déjà existant à fine tuner sur la dernière couche (avec un objectif similaire)
+- Explicabilité - retrouver le code qui donne quel pixel explique le label, pour vérifier qu'on utilise pas le fond etc...
+- Visualisation sexy rafinée 
+
+
+note : torch.jit plutôt que torch.save
