@@ -58,12 +58,12 @@ class TorchPreprocessor:
             )
         
         if augmentation:
-            transform_list.append([
-                transforms.RandomResizedCrop(224),           # Coupe aléatoire et redimensionne
-                transforms.RandomHorizontalFlip(p=0.5),      # 50% de chance de faire un effet miroir
-                transforms.RandomRotation(degrees=15),       # Tourne l'image de max 15 degrés
-                transforms.ColorJitter(brightness=0.2),      # Change un peu la luminosité
-            ])
+            transform_list.extend([
+                    transforms.RandomResizedCrop(224),
+                    transforms.RandomHorizontalFlip(p=0.5),
+                    transforms.RandomRotation(degrees=15),
+                    transforms.ColorJitter(brightness=0.2),
+                ])
 
         # ToTensor, scale le PIL de [0,255] à [0,1]
         transform_list.append(transforms.ToTensor())
