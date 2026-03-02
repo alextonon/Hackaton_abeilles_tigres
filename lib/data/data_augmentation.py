@@ -4,76 +4,118 @@ import sys
 import os
 import torch
 from torchvision import datasets, transforms
-from torch.utils.data import DataLoader, WeightedRandomSampler
+from torch.utils.data import DataLoader, WeightedRandomSampler, Dataset
 
 from dataset import BeeDataset
 from train_val_split import train_val_split
 from lib.data.preprocessing import TorchPreprocessor
 
 
-def data_augmented_loader(mean, std) :
-    train_preprocessor = TorchPreprocessor(
-        mean = mean,
-        std = std,
-        normalize=True,
-        augmentation=True,  # On active l'augmentation pour le train
-        resize_method="pad",
-        target_size=(224, 224)
+class TargetedAugmentation(Dataset):
+    def __init__(self, dataset_base, transform_defaut, dict_transforms_rares):
+        self.dataset_base = dataset_base
+        # On s'assure que le dataset de base n'applique rien de lui-même
+        self.dataset_base.transform = None 
+        
+        self.transform_defaut = transform_defaut
+        self.dict_transforms_rares = dict_transforms_rares
+
+    def __len__(self):
+        return len(self.dataset_base)
+
+    def __getitem__(self, idx):
+        # On lit le chemin et le label (la base renvoie l'image non transformée, ex: PIL)
+        image, label_tensor = self.dataset_base[idx]
+        label_idx = label_tensor.item()
+        
+        # On applique la transformation spécifique si la classe est ciblée
+        if label_idx in self.dict_transforms_rares:
+            image = self.dict_transforms_rares[label_idx](image)
+        # Sinon, la transformation d'entraînement par défaut (light)
+        else:
+            image = self.transform_defaut(image)
+            
+        return image, label_tensor
+    
+
+def data_augmented_loader(mean, std, root_dir):
+    # -------------------------------------------------------------------------
+    # A. INITIALISATION DES PREPROCESSORS
+    # -------------------------------------------------------------------------
+    train_preprocessor_light = TorchPreprocessor(
+        mean=mean, std=std, normalize=True,
+        augmentation="light", 
+        resize_method="pad", target_size=(224, 224)
     )
-    val_preprocessor = TorchPreprocessor(
-        mean = mean,
-        std = std,
-        normalize=True,
-        augmentation=False, # Pas d'augmentation pour la validation
-        resize_method="pad",
-        target_size=(224, 224)
+    
+    train_preprocessor_heavy = TorchPreprocessor(
+        mean=mean, std=std, normalize=True,
+        augmentation="heavy", 
+        resize_method="pad", target_size=(224, 224)
     )
 
-    # C. On crée les datasets
+    val_preprocessor = TorchPreprocessor(
+        mean=mean, std=std, normalize=True,
+        augmentation="none", 
+        resize_method="pad", target_size=(224, 224)
+    )
+
+    # -------------------------------------------------------------------------
+    # B. SÉPARATION DES DATASETS
+    # -------------------------------------------------------------------------
+    # On passe val_preprocessor pour la validation.
+    # Pour le train, on ne passe RIEN pour l'instant (None), car le Wrapper va s'en charger.
     train_dataset, val_dataset = train_val_split(
-        train_transform=train_preprocessor, 
+        root_dir=root_dir,
+        train_transform=None, 
         val_transform=val_preprocessor
     )
 
-    print(f"Train prêt : {len(train_dataset)} images (avec augmentation)")
-    print(f"Val prête  : {len(val_dataset)} images (sans augmentation)")
-
-    # ==============================================================================
-    # 4. GESTION DU DÉSÉQUILIBRE (WEIGHTED RANDOM SAMPLER)
-    # ==============================================================================
-    # On récupère uniquement les labels du set d'entraînement
+    # -------------------------------------------------------------------------
+    # C. CIBLAGE DES CLASSES RARES (CLASS-AWARE AUGMENTATION)
+    # -------------------------------------------------------------------------
     labels_train = [sample[1] for sample in train_dataset.samples]
-
-    # On compte combien de fois chaque classe apparaît dans l'entraînement
     compte_classes = np.bincount(labels_train)
 
-    # On calcule le poids de chaque classe (inversement proportionnel à sa fréquence)
-    # On ajoute un petit epsilon (1e-8) pour éviter la division par zéro si une classe a disparu
-    poids_classes = 1.0 / (compte_classes + 1e-8)
+    # Définir quelles classes sont rares (ex: celles ayant moins de 100 images)
+    SEUIL_RARE = 100
+    dict_rares = {}
+    for classe_idx, compte in enumerate(compte_classes):
+        if compte < SEUIL_RARE:
+            dict_rares[classe_idx] = train_preprocessor_heavy
 
-    # On attribue à CHAQUE image du train_dataset le poids correspondant à sa classe
+    # On enrobe le train_dataset avec notre logique conditionnelle
+    train_dataset_ciblé = TargetedAugmentation(
+        dataset_base=train_dataset,
+        transform_defaut=train_preprocessor_light,
+        dict_transforms_rares=dict_rares
+    )
+
+    print(f"Train prêt : {len(train_dataset_ciblé)} images (avec augmentation ciblée)")
+    print(f"Val prête  : {len(val_dataset)} images (sans augmentation)")
+
+    # -------------------------------------------------------------------------
+    # D. GESTION DU DÉSÉQUILIBRE (WEIGHTED RANDOM SAMPLER)
+    # -------------------------------------------------------------------------
+    poids_classes = 1.0 / (compte_classes + 1e-8)
     poids_echantillons = [poids_classes[label] for label in labels_train]
 
-    # Création du Sampler : Il va piocher avec remise (replacement=True)
     sampler = WeightedRandomSampler(
         weights=poids_echantillons,
-        num_samples=len(poids_echantillons), # Le modèle verra autant d'images par époque qu'avant
+        num_samples=len(poids_echantillons), 
         replacement=True
     )
 
-
-    # ==============================================================================
-    # 5. CRÉATION DES DATALOADERS FINAUX
-    # ==============================================================================
-    # DataLoader d'entraînement (avec le Sampler pour rééquilibrer)
+    # -------------------------------------------------------------------------
+    # E. CRÉATION DES DATALOADERS FINAUX
+    # -------------------------------------------------------------------------
     train_loader = DataLoader(
-        train_dataset, 
+        train_dataset_ciblé, # <--- On utilise le dataset enrobé ici
         batch_size=32, 
-        sampler=sampler, # Pas de 'shuffle=True' ici, le sampler mélange déjà intelligemment
-        num_workers=2    # À adapter selon ton processeur (ex: 4 ou 8)
+        sampler=sampler, 
+        num_workers=2
     )
 
-    # DataLoader de validation (Classique, séquentiel)
     val_loader = DataLoader(
         val_dataset, 
         batch_size=32, 

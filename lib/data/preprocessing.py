@@ -29,7 +29,7 @@ class TorchPreprocessor:
                  mean=None, 
                  std=None, 
                  normalize=True,
-                 augmentation=False,
+                 augmentation="none",
                  resize_method="crop", 
                  target_size=(224, 224)):
         
@@ -57,13 +57,21 @@ class TorchPreprocessor:
                 PadToSquare(target_size)
             )
         
-        if augmentation:
+        if augmentation == "light":
             transform_list.extend([
-                    transforms.RandomResizedCrop(224),
-                    transforms.RandomHorizontalFlip(p=0.5),
-                    transforms.RandomRotation(degrees=15),
-                    transforms.ColorJitter(brightness=0.2),
-                ])
+                transforms.RandomResizedCrop(224, scale=(0.8, 1.0)),
+                transforms.RandomHorizontalFlip(p=0.5),
+                transforms.RandomRotation(degrees=15),
+                transforms.ColorJitter(brightness=0.2),
+            ])
+        elif augmentation == "heavy":
+            transform_list.extend([
+                transforms.RandomResizedCrop(224, scale=(0.5, 1.0)),
+                transforms.RandomHorizontalFlip(p=0.5),
+                transforms.RandomVerticalFlip(p=0.2),
+                transforms.RandomRotation(degrees=45),
+                transforms.ColorJitter(brightness=0.3, contrast=0.3, saturation=0.3),
+            ])
 
         # ToTensor, scale le PIL de [0,255] à [0,1]
         transform_list.append(transforms.ToTensor())
