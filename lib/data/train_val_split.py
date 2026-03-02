@@ -6,7 +6,7 @@ from torch.utils.data import Subset, DataLoader, WeightedRandomSampler
 import numpy as np
 import copy
 
-from dataset import BeeDataset
+from .dataset import BeeDataset
 from sklearn.model_selection import train_test_split
 from collections import Counter
 
@@ -49,5 +49,5 @@ def train_val_split(transform=None):
     if transform is not None:
         train_dataset.transform = transform
         val_dataset.transform = transform
-        
+
     return train_dataset, val_dataset
