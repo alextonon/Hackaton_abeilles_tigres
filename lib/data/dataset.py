@@ -66,14 +66,14 @@ class BeeDataset(Dataset):
             file = pd.read_csv(self.train_csv_dir, sep=",")
             image_paths = file["id"]
             label = file["label"]
-            image_paths = [os.path.join("data/", img) for img in image_paths]
+            image_paths = [os.path.join("../data/", img) for img in image_paths]
             self.samples = list(zip(image_paths, label))
 
         else:
             file = pd.read_csv(self.test_csv_dir, sep=",")
             id = file["id"]
             image_path = file["image"]
-            image_paths = [os.path.join("data/test", img) for img in image_path]
+            image_paths = [os.path.join("../data/test", img) for img in image_path]
             self.samples = list(zip(image_paths, id))
 
     def __len__(self):
