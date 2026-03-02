@@ -10,18 +10,19 @@ def generate_dataset_csv(root_dir, mapping_file, output_csv):
     # 1. Charger le mapping {classe: score}
     class_to_value = {}
     with open(mapping_file, 'r') as f:
-        n_line = 1
-        for line in f:
+        for n_line, line in enumerate (f,1):
             line = line.rstrip("\n")
             species, value = line, n_line
             class_to_value[species.strip()] = value
-            n_line += 1
+            
 
     # 2. Parcourir les dossiers et créer les lignes du CSV
     data_rows = []
     
     # On liste les sous-dossiers (les classes)
-    for species_name in os.listdir(root_dir):
+    species_list = sorted(os.listdir(root_dir))
+
+    for species_name in species_list:
         species_path = os.path.join(root_dir, species_name)
         
         if os.path.isdir(species_path):
@@ -32,10 +33,12 @@ def generate_dataset_csv(root_dir, mapping_file, output_csv):
                 continue
 
             # Lister les images dans le dossier de la classe
-            for img_name in os.listdir(species_path):
+            img_list = sorted(os.listdir(species_path))
+
+            for img_name in img_list:
                 if img_name.lower().endswith(('.jpg')):
                     # Chemin relatif : train/classe_1/img1.jpg
-                    relative_path = os.path.join('train', species_path, img_name)
+                    relative_path = os.path.join('train', species_name, img_name)
                     data_rows.append([relative_path, label])
 
     # 3. Écriture du fichier CSV
