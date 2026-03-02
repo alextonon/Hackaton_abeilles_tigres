@@ -65,7 +65,7 @@ class BeeDataset(Dataset):
         if train:
             file = pd.read_csv(self.train_csv_dir, sep=",")
             image_paths = file["id"]
-            label = file["label"] - 1 # On décale les labels de 1 pour que ça commence à 0
+            label = file["label"] 
             image_paths = [os.path.join("../data/", img) for img in image_paths]
             self.samples = list(zip(image_paths, label))
 
