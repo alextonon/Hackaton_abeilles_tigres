@@ -37,7 +37,7 @@ class TorchPreprocessor:
         
         transform_list = []
 
-        # 🔹 Resize strategies
+        # Resize strategies
         if resize_method == "resize":
             transform_list.append(
                 transforms.Resize(target_size)
@@ -56,10 +56,10 @@ class TorchPreprocessor:
                 PadToSquare(target_size)
             )
 
-        # 🔹 ToTensor (toujours UNE seule fois)
+        # ToTensor, scale le PIL de [0,255] à [0,1]
         transform_list.append(transforms.ToTensor())
 
-        # 🔹 Normalization
+        # Normalization
         if normalize:
             transform_list.append(
                 transforms.Normalize(mean=self.mean, std=self.std)
