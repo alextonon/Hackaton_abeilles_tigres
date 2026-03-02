@@ -10,12 +10,8 @@ from dataset import BeeDataset
 from sklearn.model_selection import train_test_split
 from collections import Counter
 
-def train_val_split(root_dir) : 
-
-    # 1. On instancie ta classe (pas besoin de 'transform' ici, on veut juste lire les chemins)
-    # Remplace 'data/train' par le chemin exact de ton dossier
-    full_dataset = BeeDataset(root_dir=root_dir)
-
+def train_val_split(transform=None): 
+    full_dataset = BeeDataset(train=True)
     indices = np.arange(len(full_dataset))
     labels = np.array([sample[1] for sample in full_dataset.samples])
 
@@ -50,4 +46,8 @@ def train_val_split(root_dir) :
     train_dataset.samples = [full_dataset.samples[i] for i in idx_train]
     val_dataset.samples = [full_dataset.samples[i] for i in idx_val]
 
+    if transform is not None:
+        train_dataset.transform = transform
+        val_dataset.transform = transform
+        
     return train_dataset, val_dataset
