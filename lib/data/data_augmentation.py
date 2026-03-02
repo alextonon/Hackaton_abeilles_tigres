@@ -38,27 +38,29 @@ class TargetedAugmentation(Dataset):
         return image, label_tensor
     
 
-def data_augmented_loader(mean, std, target_size):
+def data_augmented_loader(mean, std, target_size, train_preprocessor_light= None, train_preprocessor_heavy=None, val_preprocessor=None):
     # -------------------------------------------------------------------------
     # A. INITIALISATION DES PREPROCESSORS
     # -------------------------------------------------------------------------
-    train_preprocessor_light = TorchPreprocessor(
-        mean=mean, std=std, normalize=True,
-        augmentation="light", 
-        resize_method="pad", target_size=target_size
-    )
+    if train_preprocessor_light is None:
+        train_preprocessor_light = TorchPreprocessor(
+            mean=mean, std=std, normalize=True,
+            augmentation="light", 
+            resize_method="pad", target_size=target_size
+        )
     
-    train_preprocessor_heavy = TorchPreprocessor(
+    if train_preprocessor_heavy is None:
+        train_preprocessor_heavy = TorchPreprocessor(
         mean=mean, std=std, normalize=True,
         augmentation="heavy", 
         resize_method="pad", target_size=target_size
     )
-
-    val_preprocessor = TorchPreprocessor(
-        mean=mean, std=std, normalize=True,
-        augmentation="none", 
-        resize_method="pad", target_size=target_size
-    )
+    if val_preprocessor is None:    
+        val_preprocessor = TorchPreprocessor(
+            mean=mean, std=std, normalize=True,
+            augmentation="none", 
+            resize_method="pad", target_size=target_size
+        )
 
     # -------------------------------------------------------------------------
     # B. SÉPARATION DES DATASETS
