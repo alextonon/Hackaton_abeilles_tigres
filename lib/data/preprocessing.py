@@ -31,6 +31,8 @@ class TorchPreprocessor:
                  normalize=True,
                  augmentation="none",
                  resize_method="crop", 
+                 interpolation_method="BILINEAR",
+                 resize_value=256,
                  target_size=(224, 224)):
         
         self.mean = mean if mean is not None else [0.54151865, 0.50277623, 0.33710416]
@@ -38,15 +40,22 @@ class TorchPreprocessor:
         
         transform_list = []
 
+        if interpolation_method == "BILINEAR":
+            interpolation = transforms.InterpolationMode.BILINEAR
+        elif interpolation_method == "BICUBIC":
+            interpolation = transforms.InterpolationMode.BICUBIC
+        else:
+            raise ValueError(f"Unknown interpolation method: {interpolation_method}")
+
         # Resize strategies
         if resize_method == "resize":
             transform_list.append(
-                transforms.Resize(target_size)
+                transforms.Resize(target_size, interpolation=interpolation)
             )
 
         elif resize_method == "crop":
             transform_list.append(
-                transforms.Resize(target_size)
+                transforms.Resize(resize_value, interpolation=interpolation)
             )
             transform_list.append(
                 transforms.CenterCrop(target_size)
