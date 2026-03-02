@@ -59,18 +59,16 @@ class TorchPreprocessor:
         
         if augmentation == "light":
             transform_list.extend([
-                transforms.RandomResizedCrop(224, scale=(0.8, 1.0)),
+                transforms.RandomResizedCrop(target_size, scale=(0.8, 1.0)),
                 transforms.RandomHorizontalFlip(p=0.5),
-                transforms.RandomRotation(degrees=15),
-                transforms.ColorJitter(brightness=0.2),
+                transforms.RandAugment(num_ops=1, magnitude=5)
             ])
         elif augmentation == "heavy":
             transform_list.extend([
-                transforms.RandomResizedCrop(224, scale=(0.5, 1.0)),
+                transforms.RandomResizedCrop(target_size, scale=(0.5, 1.0)),
                 transforms.RandomHorizontalFlip(p=0.5),
-                transforms.RandomVerticalFlip(p=0.2),
-                transforms.RandomRotation(degrees=45),
-                transforms.ColorJitter(brightness=0.3, contrast=0.3, saturation=0.3),
+                # RandAugment Agressif
+                transforms.RandAugment(num_ops=3, magnitude=15)
             ])
         elif augmentation == "RandAugment":
             transform_list.append(
