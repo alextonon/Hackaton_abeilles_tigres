@@ -3,6 +3,10 @@ from torchvision import transforms
 import torchvision.transforms.functional as F
 
 class PadToSquare:
+    """
+    Classe pour rendre les images carrées ou quoi la team
+    """
+
     def __init__(self, target_size, fill=255):
         self.target_size = target_size
         self.fill = fill
@@ -25,6 +29,12 @@ class PadToSquare:
         return img
 
 class TorchPreprocessor:
+    """
+    Préparation du dataset préalable à son passage dans un réseau de neurones
+    - redimensionnement des images
+    - augmentation des données
+    """
+    
     def __init__(self, 
                  mean=None, 
                  std=None, 
@@ -35,11 +45,13 @@ class TorchPreprocessor:
                  resize_value=256,
                  target_size=(224, 224)):
         
+        # On initialise la moyenne et l'écart-type de notre jeu de données
         self.mean = mean if mean is not None else [0.54151865, 0.50277623, 0.33710416]
         self.std = std if std is not None else [0.25970188, 0.24740465, 0.26307435]
         
         transform_list = []
 
+        # Initialisation de la méthode d'interpolation
         if interpolation_method == "BILINEAR":
             interpolation = transforms.InterpolationMode.BILINEAR
         elif interpolation_method == "BICUBIC":
@@ -47,7 +59,7 @@ class TorchPreprocessor:
         else:
             raise ValueError(f"Unknown interpolation method: {interpolation_method}")
 
-        # Resize strategies
+        # Stratégies de redimensionnement
         if resize_method == "resize":
             transform_list.append(
                 transforms.Resize(target_size, interpolation=interpolation)
@@ -66,12 +78,17 @@ class TorchPreprocessor:
                 PadToSquare(target_size)
             )
         
+
+        # Stratégies de data augmentation
+        # Light = légères modifications pour les classes courantes d'abeilles
         if augmentation == "light":
             transform_list.extend([
                 transforms.RandomResizedCrop(target_size, scale=(0.8, 1.0)),
                 transforms.RandomHorizontalFlip(p=0.5),
                 transforms.RandAugment(num_ops=1, magnitude=5)
             ])
+
+        # Heavy = modifications conséquentes pour les classes rares d'abeilles
         elif augmentation == "heavy":
             transform_list.extend([
                 transforms.RandomResizedCrop(target_size, scale=(0.5, 1.0)),
@@ -87,7 +104,7 @@ class TorchPreprocessor:
         # ToTensor, scale le PIL de [0,255] à [0,1]
         transform_list.append(transforms.ToTensor())
 
-        # Normalization
+        # Normalisation
         if normalize:
             transform_list.append(
                 transforms.Normalize(mean=self.mean, std=self.std)
