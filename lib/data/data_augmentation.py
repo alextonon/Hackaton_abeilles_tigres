@@ -6,9 +6,9 @@ import torch
 from torchvision import datasets, transforms
 from torch.utils.data import DataLoader, WeightedRandomSampler, Dataset
 
-from dataset import BeeDataset
-from train_val_split import train_val_split
-from preprocessing import TorchPreprocessor
+from lib.data.dataset import BeeDataset
+from lib.data.train_val_split import train_val_split
+from lib.data.preprocessing import TorchPreprocessor
 
 
 class TargetedAugmentation(Dataset):
