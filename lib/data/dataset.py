@@ -55,7 +55,7 @@ class BeeDatasetOld(Dataset):
 
 class BeeDataset(Dataset):
     def __init__(self, train, transform=None):
-        self.train_csv_dir = "../data/train.csv"
+        self.train_csv_dir = "../data/train_corrected.csv"
         self.test_csv_dir = "../data/test.csv"
         
         self.train = train
