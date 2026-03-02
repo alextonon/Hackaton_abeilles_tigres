@@ -78,6 +78,9 @@ class BeeDataset(Dataset):
 
     def __len__(self):
         return len(self.samples)
+    
+    def set_transform(self, transform):
+        self.transform = transform
 
     def __getitem__(self, idx):
             path, extra = self.samples[idx] # extra = label (train) ou id (test)
