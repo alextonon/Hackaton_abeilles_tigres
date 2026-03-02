@@ -13,16 +13,12 @@ from lib.data.preprocessing import TorchPreprocessor
 
 def data_augmented_loader() :
     train_preprocessor = TorchPreprocessor(
-        mean=[0.54151865, 0.50277623, 0.33710416],
-        std=[0.25970188, 0.24740465, 0.26307435],
         normalize=True,
         augmentation=True,  # On active l'augmentation pour le train
         resize_method="pad",
         target_size=(224, 224)
     )
     val_preprocessor = TorchPreprocessor(
-        mean=[0.54151865, 0.50277623, 0.33710416],
-        std=[0.25970188, 0.24740465, 0.26307435],
         normalize=True,
         augmentation=False, # Pas d'augmentation pour la validation
         resize_method="pad",
