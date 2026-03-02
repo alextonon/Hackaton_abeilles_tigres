@@ -10,7 +10,7 @@ def generate_dataset_csv(root_dir, mapping_file, output_csv):
     # 1. Charger le mapping {classe: score}
     class_to_value = {}
     with open(mapping_file, 'r') as f:
-        for n_line, line in enumerate (f,1):
+        for n_line, line in enumerate (f):
             line = line.rstrip("\n")
             species, value = line, n_line
             class_to_value[species.strip()] = value
