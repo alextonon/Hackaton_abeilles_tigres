@@ -4,7 +4,7 @@ import csv
 # Configuration
 root_dir = 'data/train'
 mapping_file = 'data/class-mapping.txt'
-output_csv = os.path.join(root_dir, 'train_corrected.csv') 
+output_csv = os.path.join('data', 'train_corrected.csv') 
 
 def generate_dataset_csv(root_dir, mapping_file, output_csv):
     # 1. Charger le mapping {classe: score}
