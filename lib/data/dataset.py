@@ -1,4 +1,3 @@
-from email.mime import image
 import os
 import pandas as pd
 import numpy as np
@@ -7,7 +6,7 @@ import torch
 from torch.utils.data import Dataset
 from PIL import Image
 
-class BeeDataset(Dataset):
+class BeeDatasetOld(Dataset):
     def __init__(self, root_dir, transform=None):
         """
         root_dir:
@@ -54,24 +53,28 @@ class BeeDataset(Dataset):
 
         return img, torch.tensor(label, dtype=torch.long)
 
-class BeeDataset2(Dataset):
+class BeeDataset(Dataset):
     def __init__(self, train, transform=None):
         self.train_csv_dir = "data/train.csv"
         self.test_csv_dir = "data/test.csv"
+        
+        self.train = train
+
+        self.transform = transform
 
         if train:
-            file = pd.read_csv(self.train_csv_dir)
-            image_paths = np.array(file["id"])
-            label = np.array(file["label"])
+            file = pd.read_csv(self.train_csv_dir, sep=",")
+            image_paths = file["id"]
+            label = file["label"]
             image_paths = [os.path.join("data/", img) for img in image_paths]
             self.samples = list(zip(image_paths, label))
 
         else:
-            self.samples = self._load_samples(self.test_csv_dir)
-            id = np.array(file["id"])
-            image_path = np.array(file["image_id"])
+            file = pd.read_csv(self.test_csv_dir, sep=",")
+            id = file["id"]
+            image_path = file["image"]
             image_paths = [os.path.join("data/test", img) for img in image_path]
-            self.samples = list(zip(id, image_paths))
+            self.samples = list(zip(image_paths, id))
 
     def __len__(self):
         return len(self.samples)
