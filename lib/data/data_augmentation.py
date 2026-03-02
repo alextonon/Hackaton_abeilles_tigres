@@ -8,7 +8,7 @@ from torch.utils.data import DataLoader, WeightedRandomSampler, Dataset
 
 from dataset import BeeDataset
 from train_val_split import train_val_split
-from lib.data.preprocessing import TorchPreprocessor
+from preprocessing import TorchPreprocessor
 
 
 class TargetedAugmentation(Dataset):
@@ -38,7 +38,7 @@ class TargetedAugmentation(Dataset):
         return image, label_tensor
     
 
-def data_augmented_loader(mean, std, root_dir):
+def data_augmented_loader(mean, std):
     # -------------------------------------------------------------------------
     # A. INITIALISATION DES PREPROCESSORS
     # -------------------------------------------------------------------------
@@ -66,7 +66,6 @@ def data_augmented_loader(mean, std, root_dir):
     # On passe val_preprocessor pour la validation.
     # Pour le train, on ne passe RIEN pour l'instant (None), car le Wrapper va s'en charger.
     train_dataset, val_dataset = train_val_split(
-        root_dir=root_dir,
         train_transform=None, 
         val_transform=val_preprocessor
     )
