@@ -38,7 +38,7 @@ class TargetedAugmentation(Dataset):
         return image, label_tensor
     
 
-def data_augmented_loader(mean, std, target_size, train_preprocessor_light= None, train_preprocessor_heavy=None, val_preprocessor=None):
+def data_augmented_loader(mean, std, target_size, batch_size=32, train_preprocessor_light= None, train_preprocessor_heavy=None, val_preprocessor=None):
     # -------------------------------------------------------------------------
     # A. INITIALISATION DES PREPROCESSORS
     # -------------------------------------------------------------------------
@@ -112,14 +112,14 @@ def data_augmented_loader(mean, std, target_size, train_preprocessor_light= None
     # -------------------------------------------------------------------------
     train_loader = DataLoader(
         train_dataset_ciblé, # <--- On utilise le dataset enrobé ici
-        batch_size=32, 
+        batch_size=batch_size, 
         sampler=sampler, 
         num_workers=2
     )
 
     val_loader = DataLoader(
         val_dataset, 
-        batch_size=32, 
+        batch_size=batch_size, 
         shuffle=False, 
         num_workers=2
     )
