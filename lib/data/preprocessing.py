@@ -25,10 +25,15 @@ class PadToSquare:
         return img
 
 class TorchPreprocessor:
-    def __init__(self, normalize=True, resize_method="crop", target_size=(224, 224)):
+    def __init__(self, 
+                 mean=None, 
+                 std=None, 
+                 normalize=True, 
+                 resize_method="crop", 
+                 target_size=(224, 224)):
         
-        self.mean = [0.54151865, 0.50277623, 0.33710416]
-        self.std = [0.25970188, 0.24740465, 0.26307435]
+        self.mean = mean if mean is not None else [0.54151865, 0.50277623, 0.33710416]
+        self.std = std if std is not None else [0.25970188, 0.24740465, 0.26307435]
         
         transform_list = []
 
