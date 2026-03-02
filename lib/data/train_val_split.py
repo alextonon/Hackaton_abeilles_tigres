@@ -6,11 +6,11 @@ from torch.utils.data import Subset, DataLoader, WeightedRandomSampler
 import numpy as np
 import copy
 
-from .dataset import BeeDataset
+from dataset import BeeDataset
 from sklearn.model_selection import train_test_split
 from collections import Counter
 
-def train_val_split(transform=None): 
+def train_val_split(train_transform=None, val_transform=None): 
     full_dataset = BeeDataset(train=True)
     indices = np.arange(len(full_dataset))
     labels = np.array([sample[1] for sample in full_dataset.samples])
@@ -46,8 +46,9 @@ def train_val_split(transform=None):
     train_dataset.samples = [full_dataset.samples[i] for i in idx_train]
     val_dataset.samples = [full_dataset.samples[i] for i in idx_val]
 
-    if transform is not None:
-        train_dataset.transform = transform
-        val_dataset.transform = transform
+    if train_transform is not None:
+        train_dataset.transform = train_transform
+    if val_transform is not None:
+        val_dataset.transform = val_transform
 
     return train_dataset, val_dataset
