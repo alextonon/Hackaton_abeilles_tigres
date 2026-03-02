@@ -6,7 +6,7 @@ from torch.utils.data import Subset, DataLoader, WeightedRandomSampler
 import numpy as np
 import copy
 
-from lib.data.dataset import BeeDataset
+from dataset import BeeDataset
 from sklearn.model_selection import train_test_split
 from collections import Counter
 
