@@ -72,6 +72,10 @@ class TorchPreprocessor:
                 transforms.RandomRotation(degrees=45),
                 transforms.ColorJitter(brightness=0.3, contrast=0.3, saturation=0.3),
             ])
+        elif augmentation == "RandAugment":
+            transform_list.append(
+                transforms.RandAugment(num_ops=2, magnitude=9)
+            )
 
         # ToTensor, scale le PIL de [0,255] à [0,1]
         transform_list.append(transforms.ToTensor())
