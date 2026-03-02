@@ -11,14 +11,18 @@ from train_val_split import train_val_split
 from lib.data.preprocessing import TorchPreprocessor
 
 
-def data_augmented_loader() :
+def data_augmented_loader(mean, std) :
     train_preprocessor = TorchPreprocessor(
+        mean = mean,
+        std = std,
         normalize=True,
         augmentation=True,  # On active l'augmentation pour le train
         resize_method="pad",
         target_size=(224, 224)
     )
     val_preprocessor = TorchPreprocessor(
+        mean = mean,
+        std = std,
         normalize=True,
         augmentation=False, # Pas d'augmentation pour la validation
         resize_method="pad",
