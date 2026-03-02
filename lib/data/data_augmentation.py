@@ -6,12 +6,20 @@ import torch
 from torchvision import datasets, transforms
 from torch.utils.data import DataLoader, WeightedRandomSampler, Dataset
 
-from lib.data.dataset import BeeDataset
-from lib.data.train_val_split import train_val_split
-from lib.data.preprocessing import TorchPreprocessor
+from dataset import BeeDataset
+from train_val_split import train_val_split
+from preprocessing import TorchPreprocessor
 
 
 class TargetedAugmentation(Dataset):
+    """
+    Wrapper qui gère l'augmentation de données en distinguant si l'image concernée
+    appartient à une classe rare ou non
+    Lorsque le DataLoader pioche une image, on fait appel à cette classe pour qu'elle nous dise
+    si l'image appartient à une classe rare, auquel cas on programme la data augmentation
+    en conséquence
+    """
+
     def __init__(self, dataset_base, transform_defaut, dict_transforms_rares):
         self.dataset_base = dataset_base
         # On s'assure que le dataset de base n'applique rien de lui-même
@@ -39,9 +47,13 @@ class TargetedAugmentation(Dataset):
     
 
 def data_augmented_loader(mean, std, target_size, batch_size=32, train_preprocessor_light= None, train_preprocessor_heavy=None, val_preprocessor=None):
-    # -------------------------------------------------------------------------
-    # A. INITIALISATION DES PREPROCESSORS
-    # -------------------------------------------------------------------------
+    """
+    Loader complet rendant un dataset d'entraînement et un de validation
+    """
+    
+    # Initialisation des préprocesseurs, avec le choix des méthodes de data augmentation,
+    # de la méthode de redimensionnement et de la taille finale des images
+
     if train_preprocessor_light is None:
         train_preprocessor_light = TorchPreprocessor(
             mean=mean, std=std, normalize=True,
@@ -62,23 +74,19 @@ def data_augmented_loader(mean, std, target_size, batch_size=32, train_preproces
             resize_method="pad", target_size=target_size
         )
 
-    # -------------------------------------------------------------------------
-    # B. SÉPARATION DES DATASETS
-    # -------------------------------------------------------------------------
+    # Séparation des datasets
     # On passe val_preprocessor pour la validation.
-    # Pour le train, on ne passe RIEN pour l'instant (None), car le Wrapper va s'en charger.
+    # Pour le train, on ne passe rien pour l'instant (None), car le Wrapper va s'en charger.
     train_dataset, val_dataset = train_val_split(
         train_transform=None, 
         val_transform=val_preprocessor
     )
 
-    # -------------------------------------------------------------------------
-    # C. CIBLAGE DES CLASSES RARES (CLASS-AWARE AUGMENTATION)
-    # -------------------------------------------------------------------------
+    # Ciblage des classes rares (Class-Aware Augmentation)
     labels_train = [sample[1] for sample in train_dataset.samples]
     compte_classes = np.bincount(labels_train)
 
-    # Définir quelles classes sont rares (ex: celles ayant moins de 100 images)
+    # Définir quelles classes sont rares (ici celles ayant moins de 100 images)
     SEUIL_RARE = 100
     dict_rares = {}
     for classe_idx, compte in enumerate(compte_classes):
@@ -95,9 +103,10 @@ def data_augmented_loader(mean, std, target_size, batch_size=32, train_preproces
     print(f"Train prêt : {len(train_dataset_ciblé)} images (avec augmentation ciblée)")
     print(f"Val prête  : {len(val_dataset)} images (sans augmentation)")
 
-    # -------------------------------------------------------------------------
-    # D. GESTION DU DÉSÉQUILIBRE (WEIGHTED RANDOM SAMPLER)
-    # -------------------------------------------------------------------------
+    # Gestion du déséquilibre à l'aide d'un Weighted Random Sampler
+    # On veut que l'on ait plus de chances de choisir les images appartenant à des
+    # classes sous-représentées
+    # On incorpore donc un sampler aléatoire, pondéré par la taille des différentes populations
     poids_classes = 1.0 / (compte_classes + 1e-8)
     poids_echantillons = [poids_classes[label] for label in labels_train]
 
@@ -107,9 +116,8 @@ def data_augmented_loader(mean, std, target_size, batch_size=32, train_preproces
         replacement=True
     )
 
-    # -------------------------------------------------------------------------
-    # E. CRÉATION DES DATALOADERS FINAUX
-    # -------------------------------------------------------------------------
+    # Création des dataloaders finaux
+    # Pour la validation on n'utilise pas le sampler
     train_loader = DataLoader(
         train_dataset_ciblé, # <--- On utilise le dataset enrobé ici
         batch_size=batch_size, 
