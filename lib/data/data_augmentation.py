@@ -8,32 +8,31 @@ from torch.utils.data import DataLoader, WeightedRandomSampler
 
 from dataset import BeeDataset
 from train_val_split import train_val_split
+from lib.data.preprocessing import TorchPreprocessor
 
 
 def data_augmented_loader() :
-
-    # A. Les règles pour l'ENTRAÎNEMENT (La vraie Data Augmentation)
-    mes_train_transforms = transforms.Compose([
-        transforms.RandomResizedCrop(224),           # Coupe aléatoire et redimensionne
-        transforms.RandomHorizontalFlip(p=0.5),      # 50% de chance de faire un effet miroir
-        transforms.RandomRotation(degrees=15),       # Tourne l'image de max 15 degrés
-        transforms.ColorJitter(brightness=0.2),      # Change un peu la luminosité
-        transforms.ToTensor(),                       # Convertit l'image en tenseur PyTorch
-        transforms.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225])
-    ])
-
-    # B. Les règles pour la VALIDATION (Juste la mise au format du modèle)
-    mes_val_transforms = transforms.Compose([
-        transforms.Resize(256),                      # Redimensionne à 256x256
-        transforms.CenterCrop(224),                  # Garde le carré central de 224x224
-        transforms.ToTensor(),                       # Convertit en tenseur
-        transforms.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225])
-    ])
+    train_preprocessor = TorchPreprocessor(
+        mean=[0.54151865, 0.50277623, 0.33710416],
+        std=[0.25970188, 0.24740465, 0.26307435],
+        normalize=True,
+        augmentation=True,  # On active l'augmentation pour le train
+        resize_method="pad",
+        target_size=(224, 224)
+    )
+    val_preprocessor = TorchPreprocessor(
+        mean=[0.54151865, 0.50277623, 0.33710416],
+        std=[0.25970188, 0.24740465, 0.26307435],
+        normalize=True,
+        augmentation=False, # Pas d'augmentation pour la validation
+        resize_method="pad",
+        target_size=(224, 224)
+    )
 
     # C. On crée les datasets
     train_dataset, val_dataset = train_val_split(
-        train_transform=mes_train_transforms, 
-        val_transform=mes_val_transforms
+        train_transform=train_preprocessor, 
+        val_transform=val_preprocessor
     )
 
     print(f"Train prêt : {len(train_dataset)} images (avec augmentation)")
