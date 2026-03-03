@@ -97,11 +97,11 @@ class TorchPreprocessor:
                 transforms.RandAugment(num_ops=3, magnitude=15)
             ])
         elif augmentation == "RandAugment":
-            transform_list.append(
+            transform_list.extend([
                 transforms.RandomResizedCrop(target_size, scale=(0.5, 1.0)),
                 transforms.RandomHorizontalFlip(p=0.5),
                 transforms.RandAugment(num_ops=2, magnitude=9)
-            )
+            ])
 
         # ToTensor, scale le PIL de [0,255] à [0,1]
         transform_list.append(transforms.ToTensor())
