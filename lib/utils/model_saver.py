@@ -1,4 +1,4 @@
-import datetime
+from datetime import datetime
 import os
 import json
 import torch
@@ -6,6 +6,7 @@ from sklearn.metrics import confusion_matrix
 from sklearn.metrics import confusion_matrix, precision_recall_fscore_support
 import pandas as pd
 import numpy as np
+import csv
 
 
 from lib.data.dataset import BeeDataset
@@ -102,9 +103,9 @@ class ModelSaver:
 
     def create_model_folder(self, model, username="bizuuuuth"):
         model_name = type(model).__name__
-        hour_min = datetime.now().strftime("%H%M")
+        hour_min = datetime.now().strftime("%Hh%M")
         folder_name = f"{model_name}_{username}_{hour_min}"
-        folder_path = os.path.join("saved_models", folder_name)
+        folder_path = os.path.join("../results", folder_name)
         os.makedirs(folder_path, exist_ok=True)
         return folder_path
     
@@ -145,6 +146,8 @@ class ModelSaver:
         submission_df.to_csv(save_path, index=False)
 
         print(f"Submission saved to {save_path}")
+
+    
 
     def evaluate(self, model, batch_size=32, transform=None,
                 model_name="best_model.pth", device="cpu",
@@ -208,32 +211,6 @@ class ModelSaver:
         print(f"Metrics saved to {metrics_path}")
 
         return cm_df, metrics_df
-    
-
-    def compute_metrics(val_labels, val_preds, num_classes):
-        cm = confusion_matrix(val_labels, val_preds)
-
-        precision, recall, f1, _ = precision_recall_fscore_support(
-            val_labels, val_preds, average=None, zero_division=0
-        )
-
-        total = cm.sum()
-        accuracy_per_class = []
-
-        for cls in range(num_classes):
-            TP = cm[cls, cls]
-            FP = cm[:, cls].sum() - TP
-            FN = cm[cls, :].sum() - TP
-            TN = total - (TP + FP + FN)
-            accuracy_per_class.append((TP + TN) / total)
-
-        metrics_df = pd.DataFrame({
-            "class": list(range(num_classes)),
-            "accuracy": accuracy_per_class,
-            "precision": precision,
-            "recall": recall,
-            "f1_score": f1
-        })
 
         return cm, metrics_df
 
@@ -263,3 +240,35 @@ class ModelSaver:
             if not file_exists:
                 writer.writeheader()
             writer.writerow(log_row)
+    
+    def save_epoch(self, epoch, metrics, mode="train"):
+        training_monitor_path = os.path.join(self.folder_path, "training_monitor.json")
+        
+        f1_per_class = metrics["f1_per_class"]
+
+        epoch_row = {   
+            "mode": mode,
+            "f1_macro": float(metrics["f1_macro"]), # Sécurité pour JSON
+            "f1_per_class": list(f1_per_class),
+            "accuracy": float(metrics.get("accuracy", 0)),
+            "precision_per_class": list(metrics.get("precision_per_class", [])),
+            "recall_per_class": list(metrics.get("recall_per_class", []))
+        }
+
+        if not os.path.isfile(training_monitor_path):
+            data = {}
+        else:
+            with open(training_monitor_path, mode='r', encoding='utf-8') as f:
+                try:
+                    data = json.load(f)
+                except json.JSONDecodeError:
+                    data = {}
+
+        epoch_key = str(epoch)
+        if epoch_key not in data:
+            data[epoch_key] = []
+        
+        data[epoch_key].append(epoch_row)
+
+        with open(training_monitor_path, mode='w', encoding='utf-8') as f:
+            json.dump(data, f, indent=4)
