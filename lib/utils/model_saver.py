@@ -20,7 +20,7 @@ class ModelSaver:
         self.folder_path = self.create_model_folder(model, username)
 
 
-    def save_training_config(self, model, optimizer, BATCH_SIZE, NUM_EPOCHS, LR, DEVICE, scheduler=None, criterion=None):
+    def save_training_config(self, model, optimizer, BATCH_SIZE, NUM_EPOCHS, LR, DROPOUT, DEVICE, scheduler=None, criterion=None):
         summary = {}
 
         # ===== MODEL =====
@@ -39,7 +39,7 @@ class ModelSaver:
             "num_epochs": NUM_EPOCHS,
             "learning_rate": LR,
             "device": str(DEVICE),
-            "dropout": getattr(model, "dropout", "N/A"),  # Si le modèle a un attribut dropout, on le récupère
+            "dropout": DROPOUT,
         }
 
         # ===== OPTIMIZER =====
@@ -241,7 +241,7 @@ class ModelSaver:
                 writer.writeheader()
             writer.writerow(log_row)
     
-    def save_epoch(self, epoch, metrics, mode="train"):
+    def save_epoch(self, epoch, metrics, loss, mode="train"):
         training_monitor_path = os.path.join(self.folder_path, "training_monitor.json")
         
         f1_per_class = metrics["f1_per_class"]
@@ -252,7 +252,8 @@ class ModelSaver:
             "f1_per_class": list(f1_per_class),
             "accuracy": float(metrics.get("accuracy", 0)),
             "precision_per_class": list(metrics.get("precision_per_class", [])),
-            "recall_per_class": list(metrics.get("recall_per_class", []))
+            "recall_per_class": list(metrics.get("recall_per_class", [])),
+            "loss": float(loss)
         }
 
         if not os.path.isfile(training_monitor_path):
