@@ -70,8 +70,6 @@ def data_augmented_loader(mean, std, target_size, batch_size=32,
             resize_method="pad", target_size=target_size
         )
 
-    print(f"Val prête  : {len(val_dataset)} images (sans augmentation)")
-
     if not apply_augmentation :
 
         if train_preprocessor_uniform is None:
@@ -174,7 +172,8 @@ def data_augmented_loader(mean, std, target_size, batch_size=32,
 
             print(f"Train prêt : {len(train_dataset_final)} images (Augmentation CIBLÉE, Weighted SAMPLER)")
 
-
+    print(f"Val prête  : {len(val_dataset)} images (sans augmentation)")
+    
     # Création des DataLoader finaux
     train_loader = DataLoader(
         train_dataset_final, 
