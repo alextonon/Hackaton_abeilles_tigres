@@ -5,6 +5,8 @@ import os
 import torch
 from torchvision import datasets, transforms
 from torch.utils.data import DataLoader, WeightedRandomSampler, Dataset
+from torch.utils.data.dataloader import default_collate
+import torch.nn.functional as F
 
 from .dataset import BeeDataset
 from .train_val_split import train_val_split
@@ -46,9 +48,47 @@ class TargetedAugmentation(Dataset):
         return image, label_tensor
     
 
+class MixupCollate:
+    """
+    Intercepte un batch d'images et applique l'algorithme Mixup.
+    Fusionne les images et transforme les labels entiers en probabilités (soft labels).
+    """
+    def __init__(self, num_classes, alpha=0.2):
+        self.num_classes = num_classes
+        self.alpha = alpha # Contrôle la force du mélange (0.2 est le standard de l'industrie)
+
+    def __call__(self, batch):
+        # 1. On laisse PyTorch assembler le batch normalement (32 images, 32 labels)
+        images, labels = default_collate(batch)
+
+        # 2. On tire au sort le ratio de mélange (lambda) selon une distribution Beta
+        if self.alpha > 0:
+            lam = np.random.beta(self.alpha, self.alpha)
+        else:
+            lam = 1.0
+
+        # 3. On crée un ordre aléatoire pour mélanger le batch avec lui-même
+        batch_size = images.size(0)
+        index = torch.randperm(batch_size)
+
+        # 4. Fusion des images : image_A * 0.8 + image_B * 0.2
+        mixed_images = lam * images + (1 - lam) * images[index, :]
+
+        # 5. Fusion des étiquettes (Nécessite de passer en One-Hot Encoding)
+        # Ex: L'abeille A (classe 2) devient [0, 0, 1, 0...]
+        labels_one_hot = F.one_hot(labels, num_classes=self.num_classes).float()
+        
+        # Le label devient une probabilité : 80% classe 2, 20% classe 5
+        mixed_labels = lam * labels_one_hot + (1 - lam) * labels_one_hot[index, :]
+
+        return mixed_images, mixed_labels
+
+
 def data_augmented_loader(mean, std, target_size, batch_size=32,
                         apply_augmentation=False,
                         distinguish_classes=False,
+                        use_mixup=False,
+                        num_classes=50,
                         train_preprocessor_light=None, 
                         train_preprocessor_heavy=None, 
                         train_preprocessor_uniform=None,
@@ -173,13 +213,25 @@ def data_augmented_loader(mean, std, target_size, batch_size=32,
             print(f"Train prêt : {len(train_dataset_final)} images (Augmentation CIBLÉE, Weighted SAMPLER)")
 
     print(f"Val prête  : {len(val_dataset)} images (sans augmentation)")
+
+
+    train_collate_fn = None
     
+    if use_mixup:
+        if num_classes is None:
+            raise ValueError("Tu dois fournir 'num_classes' si tu actives le Mixup !")
+        # On active notre intercepteur de batch
+        train_collate_fn = MixupCollate(num_classes=num_classes, alpha=0.2)
+        print("-> Mixup : ACTIVÉ (Les labels sont maintenant des probabilités, il faut adapter la loss en conséquence mon coquin )")
+
+
     # Création des DataLoader finaux
     train_loader = DataLoader(
         train_dataset_final, 
         batch_size=batch_size, 
         sampler=train_sampler,
         shuffle=train_shuffle,
+        collate_fn=train_collate_fn,
         num_workers=2
     )
 

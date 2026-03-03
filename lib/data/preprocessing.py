@@ -98,6 +98,8 @@ class TorchPreprocessor:
             ])
         elif augmentation == "RandAugment":
             transform_list.append(
+                transforms.RandomResizedCrop(target_size, scale=(0.5, 1.0)),
+                transforms.RandomHorizontalFlip(p=0.5),
                 transforms.RandAugment(num_ops=2, magnitude=9)
             )
 
