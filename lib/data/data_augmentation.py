@@ -243,3 +243,123 @@ def data_augmented_loader(mean, std, target_size, batch_size=32,
     )
 
     return train_loader, val_loader
+
+
+def final_training_data_loader(mean, std, target_size, batch_size=32,
+                        apply_augmentation=False,
+                        distinguish_classes=False,
+                        use_mixup=False,
+                        num_classes=50,
+                        train_preprocessor_light=None, 
+                        train_preprocessor_heavy=None, 
+                        train_preprocessor_uniform=None):
+    
+    # 1. On charge le dataset global UNE SEULE FOIS pour tout le monde
+    full_dataset = BeeDataset(train=True)
+
+    # CAS 1 : AUCUNE AUGMENTATION
+    if not apply_augmentation:
+        # On force la création d'un préprocesseur vierge pour garantir l'absence d'augmentation
+        preprocessor_none = TorchPreprocessor(
+            mean=mean, std=std, normalize=True,
+            augmentation="none",
+            resize_method="pad", target_size=target_size
+        )
+        
+        full_dataset.transform = preprocessor_none
+        
+        train_dataset_final = full_dataset
+        train_sampler = None 
+        train_shuffle = True
+
+        print(f"Train prêt : {len(train_dataset_final)} images (Pas d'augmentation)")
+
+    else:
+        # CAS 2A : AUGMENTATION UNIFORME
+        if not distinguish_classes:
+            if train_preprocessor_uniform is None:
+                train_preprocessor_uniform = TorchPreprocessor(
+                    mean=mean, std=std, normalize=True,
+                    augmentation="RandAugment",
+                    resize_method="pad", target_size=target_size
+                )
+
+            full_dataset.transform = train_preprocessor_uniform
+            
+            train_dataset_final = full_dataset
+            train_sampler = None 
+            train_shuffle = True
+
+            print(f"Train prêt : {len(train_dataset_final)} images (Augmentation UNIFORME, Tirage CLASSIQUE)")
+
+        # CAS 2B : AUGMENTATION CIBLÉE + RÉÉQUILIBRAGE
+        else:
+            if train_preprocessor_light is None:
+                train_preprocessor_light = TorchPreprocessor(
+                    mean=mean, std=std, normalize=True,
+                    augmentation="light", 
+                    resize_method="pad", target_size=target_size
+                )
+            
+            if train_preprocessor_heavy is None:
+                train_preprocessor_heavy = TorchPreprocessor(
+                    mean=mean, std=std, normalize=True,
+                    augmentation="heavy", 
+                    resize_method="pad", target_size=target_size
+                )
+
+            # On s'assure que le dataset global n'a pas de transformation propre
+            full_dataset.transform = None
+
+            labels_train = [sample[1] for sample in full_dataset.samples]
+            compte_classes = np.bincount(labels_train)
+
+            # Ciblage
+            SEUIL_RARE = 100
+            dict_rares = {}
+            for classe_idx, compte in enumerate(compte_classes):
+                if compte < SEUIL_RARE:
+                    dict_rares[classe_idx] = train_preprocessor_heavy
+
+            # Application du Wrapper (TargetedAugmentation) sur le dataset global
+            train_dataset_final = TargetedAugmentation(
+                dataset_base=full_dataset,
+                transform_defaut=train_preprocessor_light,
+                dict_transforms_rares=dict_rares
+            )
+
+            # Création du Sampler basé sur toutes les données
+            poids_classes = 1.0 / (compte_classes + 1e-8)
+            poids_echantillons = [poids_classes[label] for label in labels_train]
+
+            train_sampler = WeightedRandomSampler(
+                weights=poids_echantillons,
+                num_samples=len(poids_echantillons), 
+                replacement=True
+            )
+            train_shuffle = False
+
+            print(f"Train prêt : {len(train_dataset_final)} images (Augmentation CIBLÉE, Weighted SAMPLER)")
+
+
+    # GESTION DU MIXUP
+    train_collate_fn = None
+    
+    if use_mixup:
+        if num_classes is None:
+            raise ValueError("Tu dois fournir 'num_classes' si tu actives le Mixup !")
+        train_collate_fn = MixupCollate(num_classes=num_classes, alpha=0.2)
+        print("-> Mixup : ACTIVÉ (Les labels sont maintenant des probabilités, il faut adapter la loss en conséquence mon coquin)")
+
+
+    # DATALOADER FINAL
+    train_loader = DataLoader(
+        train_dataset_final, 
+        batch_size=batch_size, 
+        sampler=train_sampler,
+        shuffle=train_shuffle,
+        collate_fn=train_collate_fn,
+        num_workers=2
+    )
+
+    return train_loader
