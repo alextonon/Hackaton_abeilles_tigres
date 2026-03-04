@@ -6,6 +6,11 @@ root_dir = 'data/train'
 mapping_file = 'data/class-mapping.txt'
 output_csv = os.path.join('data', 'train_corrected.csv') 
 
+to_delete = [
+"train/Andrena leucophaea/4347cb0b05c0c6c69e82aac788046352e0536aba.jpg",
+"train/Andrena plana/da76db25fdbde04ec4e8693d75618ec5137798df.jpg"
+]
+
 def generate_dataset_csv(root_dir, mapping_file, output_csv):
     # 1. Charger le mapping {classe: score}
     class_to_value = {}
@@ -40,6 +45,17 @@ def generate_dataset_csv(root_dir, mapping_file, output_csv):
                     # Chemin relatif : train/classe_1/img1.jpg
                     relative_path = os.path.join('train', species_name, img_name)
                     data_rows.append([relative_path, label])
+
+                    # --- NOUVELLE LOGIQUE DE SUPPRESSION ---
+                    if relative_path in to_delete:
+                            full_path = os.path.join('data', relative_path)
+                            if os.path.exists(full_path):
+                                os.remove(full_path)
+                                print(f"🗑️ Supprimé physiquement : {relative_path}")
+                            else:
+                                print(f"🚫 Ignoré (non ajouté au CSV) : {relative_path}")
+                            continue # On passe à l'image suivante, on ne l'ajoute pas au CSV
+                        # ---------------------------------------
 
     # 3. Écriture du fichier CSV
     with open(output_csv, 'w', newline='') as f:
