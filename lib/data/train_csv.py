@@ -8,7 +8,9 @@ output_csv = os.path.join('data', 'train_corrected.csv')
 
 to_delete = [
 "train/Andrena leucophaea/4347cb0b05c0c6c69e82aac788046352e0536aba.jpg",
-"train/Andrena plana/da76db25fdbde04ec4e8693d75618ec5137798df.jpg"
+"train/Andrena plana/da76db25fdbde04ec4e8693d75618ec5137798df.jpg",
+"train/Andrena hesperia/827baffdcb5edb79881ad546804f51aab81312c5.jpg"
+"train/Andrena hesperia/d6216915cf80f4d07054a210d04a9ad24a7ffd73.jpg"
 ]
 
 def generate_dataset_csv(root_dir, mapping_file, output_csv):
